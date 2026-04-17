@@ -53,7 +53,7 @@ cp .env.example .env
   "mcpServers": {
     "log-mcp-server": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "tsx", "D:/work/study/log-mcp-server/src/index.ts"]
+      "args": ["/c", "npx", "-y", "tsx", "/path/to/log-mcp-server/src/index.ts"]
     }
   }
 }
@@ -68,7 +68,7 @@ cp .env.example .env
   "mcpServers": {
     "log-mcp-server": {
       "command": "node",
-      "args": ["D:/work/study/log-mcp-server/dist/index.js"]
+      "args": ["/path/to/log-mcp-server/dist/index.js"]
     }
   }
 }

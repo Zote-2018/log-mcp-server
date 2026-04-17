@@ -2,7 +2,7 @@
 
 一个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 的日志查询服务，通过 Kibana 内部 API 查询 Elasticsearch 中的应用日志。
 
-适用于在 Claude Desktop、Cursor 等 AI 编程工具中，通过自然语言直接查询和分析 ELK 日志。
+适用于在 Claude Code、Cursor 等 AI 编程工具中，通过自然语言直接查询和分析 ELK 日志。
 
 ## 功能特性
 
@@ -51,19 +51,16 @@ KIBANA_URL=http://your-kibana-host:5601/internal/search/es
 
 > 注意：需要使用 Kibana 的 **内部 API** 路径 `/internal/search/es`，这是 Kibana 用于执行 Elasticsearch 查询的内部端点。
 
-### 2. 在 Claude Desktop 中配置
+### 2. 在 Claude Code 中配置
 
-编辑 Claude Desktop 的配置文件，添加 MCP Server：
-
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+编辑 Claude Code 配置文件 `~/.claude.json`（Windows: `C:\Users\<用户名>\.claude.json`），在 `mcpServers` 中添加：
 
 ```json
 {
   "mcpServers": {
     "log-mcp-server": {
-      "command": "node",
-      "args": ["/absolute/path/to/log-mcp-server/dist/index.js"],
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "tsx", "D:/work/study/log-mcp-server/src/index.ts"],
       "env": {
         "KIBANA_URL": "http://your-kibana-host:5601/internal/search/es",
         "KIBANA_INDEX": "logstash-*",
@@ -74,9 +71,28 @@ KIBANA_URL=http://your-kibana-host:5601/internal/search/es
 }
 ```
 
+> **Windows 注意**：需要使用 `cmd /c npx` 来执行，直接使用 `npx` 可能无法找到命令。
+
+也可以使用构建后的 JS 文件，免去 `tsx` 依赖：
+
+```json
+{
+  "mcpServers": {
+    "log-mcp-server": {
+      "command": "node",
+      "args": ["D:/work/study/log-mcp-server/dist/index.js"],
+      "env": {
+        "KIBANA_URL": "http://your-kibana-host:5601/internal/search/es",
+        "KIBANA_INDEX": "logstash-*"
+      }
+    }
+  }
+}
+```
+
 ### 3. 在 Cursor 中配置
 
-在 Cursor 设置中添加 MCP Server，或编辑 `.cursor/mcp.json`：
+编辑 `.cursor/mcp.json`：
 
 ```json
 {
@@ -96,11 +112,7 @@ KIBANA_URL=http://your-kibana-host:5601/internal/search/es
 
 ## 使用方法
 
-首次使用前需要先构建项目：
-
-```bash
-npm run build
-```
+> 如果 MCP 配置中使用 `npx tsx` 方式运行，无需构建即可使用。如果使用 `node dist/index.js` 方式，需先执行 `npm run build`。
 
 ### 可用工具
 

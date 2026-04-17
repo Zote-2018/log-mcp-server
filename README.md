@@ -10,7 +10,7 @@
 - **链路追踪** — 按 sessionId / traceId 查询完整调用链，按时间排序
 - **错误聚合** — 查询 ERROR 日志并按错误模式自动分类聚合
 - **日志解析** — 自动解析 Logback 格式日志，提取 level、logger、sessionId、errorType 等字段
-- **时间范围** — 支持 last_1h、last_6h、last_24h、last_7d 等时间范围
+- **时间范围** — 支持 `last_Nm`、`last_Nh`、`last_Nd` 自定义时间范围（N 为数字，如 `last_10m`、`last_1h`、`last_7d`）
 
 ## 前置条件
 
@@ -59,7 +59,7 @@ cp .env.example .env
 }
 ```
 
-> 环境变量通过项目根目录的 `.env` 文件管理，无需在 MCP 配置中设置。Windows 下需要使用 `cmd /c npx` 执行。
+> 环境变量通过项目根目录的 `.env` 文件自动加载（基于脚本路径，无需设置 `cwd`）。Windows 下需要使用 `cmd /c npx` 执行。
 
 也可以使用构建后的 JS 文件，免去 `tsx` 依赖：
 
@@ -104,7 +104,7 @@ cp .env.example .env
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | `query` | string | 是 | — | 搜索关键字 |
-| `time_range` | string | 否 | `last_1h` | 时间范围：`last_1h` / `last_6h` / `last_24h` / `last_7d` |
+| `time_range` | string | 否 | `last_1h` | 时间范围：`last_10m` / `last_1h` / `last_6h` / `last_24h` / `last_7d` |
 | `container` | string | 否 | `rag-client` | 容器名称过滤 |
 | `limit` | number | 否 | `50` | 最大返回条数（1-200） |
 
@@ -144,7 +144,7 @@ cp .env.example .env
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `time_range` | string | 否 | `last_1h` | 时间范围：`last_1h` / `last_6h` / `last_24h` / `last_7d` |
+| `time_range` | string | 否 | `last_1h` | 时间范围：`last_10m` / `last_1h` / `last_6h` / `last_24h` / `last_7d` |
 | `container` | string | 否 | `rag-client` | 容器名称过滤 |
 
 **示例提示词：**

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
-import 'dotenv/config';
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env') });
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';

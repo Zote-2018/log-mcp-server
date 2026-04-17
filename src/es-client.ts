@@ -1,6 +1,11 @@
-const KIBANA_URL = process.env.KIBANA_URL!;
-const KIBANA_INDEX = process.env.KIBANA_INDEX!;
-const DEFAULT_CONTAINER = process.env.DEFAULT_CONTAINER || basename(process.cwd());
+function getEnv(): { kibanaUrl: string; kibanaIndex: string; defaultContainer: string } {
+  const kibanaUrl = process.env.KIBANA_URL!;
+  const kibanaIndex = process.env.KIBANA_INDEX!;
+  const defaultContainer = process.env.DEFAULT_CONTAINER || basename(process.cwd());
+  if (!kibanaUrl) throw new Error('KIBANA_URL is not set in .env');
+  if (!kibanaIndex) throw new Error('KIBANA_INDEX is not set in .env');
+  return { kibanaUrl, kibanaIndex, defaultContainer };
+}
 
 function basename(p: string): string {
   return p.replace(/[/\\]+$/, '').split(/[/\\]/).pop() || '';
@@ -47,16 +52,18 @@ export async function searchLogs(params: {
   const {
     query,
     timeRange = 'last_1h',
-    container = DEFAULT_CONTAINER,
+    container,
     limit = 50,
     sortOrder = 'desc',
   } = params;
+  const { kibanaUrl, kibanaIndex, defaultContainer } = getEnv();
+  const effectiveContainer = container || defaultContainer;
 
   const time = parseTimeRange(timeRange);
   const filters: object[] = [{ match_all: {} }];
 
-  if (container) {
-    filters.push({ match_phrase: { container } });
+  if (effectiveContainer) {
+    filters.push({ match_phrase: { container: effectiveContainer } });
   }
   if (query) {
     filters.push({ match_phrase: { message: query } });
@@ -69,7 +76,7 @@ export async function searchLogs(params: {
 
   const body = {
     params: {
-      index: KIBANA_INDEX,
+      index: kibanaIndex,
       body: {
         version: true,
         size: Math.min(limit, 500),
@@ -82,7 +89,7 @@ export async function searchLogs(params: {
     },
   };
 
-  const resp = await fetch(KIBANA_URL, {
+  const resp = await fetch(kibanaUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'kbn-version': '7.10.2' },
     body: JSON.stringify(body),

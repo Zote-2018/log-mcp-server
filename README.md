@@ -30,7 +30,7 @@ npm install
 
 ### 1. 环境变量
 
-复制 `.env.example` 为 `.env` 并填写实际配置：
+在项目根目录创建 `.env` 文件（已提供 `.env.example` 作为模板）：
 
 ```bash
 cp .env.example .env
@@ -42,14 +42,7 @@ cp .env.example .env
 | `KIBANA_INDEX` | 是 | Elasticsearch 索引名称（如 `logstash-*`） |
 | `DEFAULT_CONTAINER` | 否 | 默认容器名称，默认取当前目录名 |
 
-#### KIBANA_URL 配置示例
-
-```
-# Kibana 内部 API
-KIBANA_URL=http://your-kibana-host:5601/internal/search/es
-```
-
-> 注意：需要使用 Kibana 的 **内部 API** 路径 `/internal/search/es`，这是 Kibana 用于执行 Elasticsearch 查询的内部端点。
+> 注意：`KIBANA_URL` 需要使用 Kibana 的 **内部 API** 路径 `/internal/search/es`，这是 Kibana 用于执行 Elasticsearch 查询的内部端点。
 
 ### 2. 在 Claude Code 中配置
 
@@ -60,18 +53,13 @@ KIBANA_URL=http://your-kibana-host:5601/internal/search/es
   "mcpServers": {
     "log-mcp-server": {
       "command": "cmd",
-      "args": ["/c", "npx", "-y", "tsx", "D:/work/study/log-mcp-server/src/index.ts"],
-      "env": {
-        "KIBANA_URL": "http://your-kibana-host:5601/internal/search/es",
-        "KIBANA_INDEX": "logstash-*",
-        "DEFAULT_CONTAINER": "rag-client"
-      }
+      "args": ["/c", "npx", "-y", "tsx", "D:/work/study/log-mcp-server/src/index.ts"]
     }
   }
 }
 ```
 
-> **Windows 注意**：需要使用 `cmd /c npx` 来执行，直接使用 `npx` 可能无法找到命令。
+> 环境变量通过项目根目录的 `.env` 文件管理，无需在 MCP 配置中设置。Windows 下需要使用 `cmd /c npx` 执行。
 
 也可以使用构建后的 JS 文件，免去 `tsx` 依赖：
 
@@ -80,11 +68,7 @@ KIBANA_URL=http://your-kibana-host:5601/internal/search/es
   "mcpServers": {
     "log-mcp-server": {
       "command": "node",
-      "args": ["D:/work/study/log-mcp-server/dist/index.js"],
-      "env": {
-        "KIBANA_URL": "http://your-kibana-host:5601/internal/search/es",
-        "KIBANA_INDEX": "logstash-*"
-      }
+      "args": ["D:/work/study/log-mcp-server/dist/index.js"]
     }
   }
 }
@@ -99,12 +83,7 @@ KIBANA_URL=http://your-kibana-host:5601/internal/search/es
   "mcpServers": {
     "log-mcp-server": {
       "command": "node",
-      "args": ["./path/to/log-mcp-server/dist/index.js"],
-      "env": {
-        "KIBANA_URL": "http://your-kibana-host:5601/internal/search/es",
-        "KIBANA_INDEX": "logstash-*",
-        "DEFAULT_CONTAINER": "rag-client"
-      }
+      "args": ["./path/to/log-mcp-server/dist/index.js"]
     }
   }
 }

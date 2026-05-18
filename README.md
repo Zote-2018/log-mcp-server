@@ -6,6 +6,8 @@
 
 ## 功能特性
 
+- **多后端支持** — 支持 Elasticsearch（生产）和 kubectl（测试/开发）两种查询后端
+- **动态命名空间过滤** — 查询时指定 namespace 参数，按 k8s 命名空间过滤日志
 - **关键字搜索** — 按关键字搜索日志，返回结构化解析结果
 - **链路追踪** — 按 sessionId / traceId 查询完整调用链，按时间排序
 - **错误聚合** — 查询 ERROR 日志并按错误模式自动分类聚合
@@ -15,8 +17,8 @@
 ## 前置条件
 
 - Node.js >= 18
-- 可访问的 Kibana 实例（需要 Kibana 内部搜索 API）
-- Elasticsearch 中存储的 Logback 格式日志
+- **Elasticsearch 后端**：可访问的 Kibana 实例 + Elasticsearch 中存储的 Logback 格式日志
+- **kubectl 后端**：本地已配置 kubectl，可访问目标 k8s 集群
 
 ## 安装
 
@@ -36,13 +38,29 @@ npm install
 cp .env.example .env
 ```
 
+#### 通用配置
+
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `LOG_BACKEND` | 否 | 查询后端：`elasticsearch`（默认）或 `kubectl` |
+| `DEFAULT_CONTAINER` | 否 | 默认容器名称，默认取当前目录名 |
+
+#### Elasticsearch 后端配置
+
 | 变量 | 必填 | 说明 |
 |------|------|------|
 | `KIBANA_URL` | 是 | Kibana 内部搜索 API 地址 |
 | `KIBANA_INDEX` | 是 | Elasticsearch 索引名称（如 `logstash-*`） |
-| `DEFAULT_CONTAINER` | 否 | 默认容器名称，默认取当前目录名 |
 
 > 注意：`KIBANA_URL` 需要使用 Kibana 的 **内部 API** 路径 `/internal/search/es`，这是 Kibana 用于执行 Elasticsearch 查询的内部端点。
+
+#### kubectl 后端配置
+
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `K8S_NAMESPACE` | 否 | Kubernetes 命名空间，默认 `default` |
+| `K8S_LABEL_SELECTOR` | 否 | Pod 标签选择器，默认 `app=<container>` |
+| `K8S_CONTEXT` | 否 | kubectl context 名称，空则使用当前 context |
 
 ### 2. 在 Claude Code 中配置
 
@@ -106,6 +124,8 @@ cp .env.example .env
 | `query` | string | 是 | — | 搜索关键字 |
 | `time_range` | string | 否 | `last_1h` | 时间范围：`last_10m` / `last_1h` / `last_6h` / `last_24h` / `last_7d` |
 | `container` | string | 否 | `rag-client` | 容器名称过滤 |
+| `namespace` | string | 否 | — | Kubernetes 命名空间过滤（如 prod、test、dev） |
+| `backend` | enum | 否 | `LOG_BACKEND` | 查询后端：`elasticsearch` 或 `kubectl` |
 | `limit` | number | 否 | `50` | 最大返回条数（1-200） |
 
 **示例提示词：**
@@ -126,6 +146,8 @@ cp .env.example .env
 |------|------|------|--------|------|
 | `trace_id` | string | 是 | — | trace_id 或 sessionId |
 | `container` | string | 否 | `rag-client` | 容器名称过滤 |
+| `namespace` | string | 否 | — | Kubernetes 命名空间过滤 |
+| `backend` | enum | 否 | `LOG_BACKEND` | 查询后端：`elasticsearch` 或 `kubectl` |
 
 > 自动搜索最近 7 天，最多返回 200 条日志。
 
@@ -146,6 +168,8 @@ cp .env.example .env
 |------|------|------|--------|------|
 | `time_range` | string | 否 | `last_1h` | 时间范围：`last_10m` / `last_1h` / `last_6h` / `last_24h` / `last_7d` |
 | `container` | string | 否 | `rag-client` | 容器名称过滤 |
+| `namespace` | string | 否 | — | Kubernetes 命名空间过滤 |
+| `backend` | enum | 否 | `LOG_BACKEND` | 查询后端：`elasticsearch` 或 `kubectl` |
 
 **示例提示词：**
 

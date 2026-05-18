@@ -46,6 +46,7 @@ export async function searchLogs(params: {
   query?: string;
   timeRange?: string;
   container?: string;
+  namespace?: string;
   limit?: number;
   sortOrder?: 'desc' | 'asc';
 }): Promise<SearchResult> {
@@ -58,6 +59,8 @@ export async function searchLogs(params: {
   } = params;
   const { kibanaUrl, kibanaIndex, defaultContainer } = getEnv();
   const effectiveContainer = container || defaultContainer;
+  // namespace 同时作为 ES index 名（与 K8s namespace 一致），未传则用 env 默认值
+  const effectiveIndex = params.namespace || kibanaIndex;
 
   const time = parseTimeRange(timeRange);
   const filters: object[] = [{ match_all: {} }];
@@ -76,7 +79,7 @@ export async function searchLogs(params: {
 
   const body = {
     params: {
-      index: kibanaIndex,
+      index: effectiveIndex,
       body: {
         version: true,
         size: Math.min(limit, 500),

@@ -1,3 +1,5 @@
+import { getCachedNamespace, setCachedNamespace } from './namespace-cache.js';
+
 function getEnv(): { kibanaUrl: string; kibanaIndex: string; defaultContainer: string } {
   const kibanaUrl = process.env.KIBANA_URL!;
   const kibanaIndex = process.env.KIBANA_INDEX!;
@@ -22,6 +24,22 @@ export interface LogEntry {
 export interface SearchResult {
   total: number;
   logs: LogEntry[];
+  /** 实际使用的 ES index name，仅当 namespace 并非调用方显式传入时才附带（cache/default 来源） */
+  namespaceUsed?: string;
+  namespaceSource?: 'cache' | 'default';
+  /** total=0 时给出的排查提示 */
+  cacheHint?: string;
+}
+
+/** 将 SearchResult 里的 namespace 元信息拼成响应可用的字段，explicit 来源不附带任何字段 */
+export function namespaceMeta(result: SearchResult): Record<string, string> {
+  const meta: Record<string, string> = {};
+  if (result.namespaceUsed && result.namespaceSource) {
+    meta.namespace_used = result.namespaceUsed;
+    meta.namespace_source = result.namespaceSource;
+  }
+  if (result.cacheHint) meta.cache_hint = result.cacheHint;
+  return meta;
 }
 
 function parseTimeRange(timeRange: string): { gte: string; lte: string } {
@@ -59,8 +77,23 @@ export async function searchLogs(params: {
   } = params;
   const { kibanaUrl, kibanaIndex, defaultContainer } = getEnv();
   const effectiveContainer = container || defaultContainer;
-  // namespace 同时作为 ES index 名（与 K8s namespace 一致），未传则用 env 默认值
-  const effectiveIndex = params.namespace || kibanaIndex;
+  // namespace 同时作为 ES index 名（与 K8s namespace 一致）
+  // 解析优先级：显式传入 > server 端缓存(按 container) > .env 默认值
+  const explicitNamespace = params.namespace?.trim() || undefined;
+  let effectiveIndex: string;
+  let namespaceSource: 'cache' | 'default' | undefined;
+  if (explicitNamespace) {
+    effectiveIndex = explicitNamespace;
+  } else {
+    const cached = getCachedNamespace(effectiveContainer);
+    if (cached) {
+      effectiveIndex = cached;
+      namespaceSource = 'cache';
+    } else {
+      effectiveIndex = kibanaIndex;
+      namespaceSource = 'default';
+    }
+  }
 
   const time = parseTimeRange(timeRange);
   const filters: object[] = [{ match_all: {} }];
@@ -114,5 +147,21 @@ export async function searchLogs(params: {
     message: h._source?.message ?? '',
   }));
 
-  return { total, logs };
+  // 显式传入的 namespace 一旦查询命中(total>0)，即视为已验证，记入 server 端缓存供后续直接复用
+  if (explicitNamespace && total > 0) {
+    setCachedNamespace(effectiveContainer, explicitNamespace);
+  }
+
+  const result: SearchResult = { total, logs };
+  if (namespaceSource) {
+    result.namespaceUsed = effectiveIndex;
+    result.namespaceSource = namespaceSource;
+    if (total === 0) {
+      result.cacheHint =
+        namespaceSource === 'cache'
+          ? `Cached namespace '${effectiveIndex}' for container '${effectiveContainer}' returned no results. If the ES index was migrated, pass the correct namespace explicitly to refresh the cache.`
+          : `No cached namespace for container '${effectiveContainer}', used default index '${effectiveIndex}'. If this container logs to a different ES index, ask the user for the correct name and retry with an explicit namespace parameter — it will be cached automatically on success.`;
+    }
+  }
+  return result;
 }

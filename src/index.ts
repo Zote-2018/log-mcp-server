@@ -8,7 +8,7 @@ config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env') });
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { searchLogs } from './es-client.js';
+import { searchLogs, namespaceMeta } from './es-client.js';
 import { searchLogsKubectl } from './kubectl-client.js';
 import { searchLogsK8sApi } from './k8s-api-client.js';
 import { parseLog, aggregateErrors, generateTraceSummary } from './log-parser.js';
@@ -41,6 +41,14 @@ const server = new McpServer(
       '- imageName 格式为 "$repositoryDir/xxx"，取最后一段（如 openapi-cnfr）作为 container 值',
       '- 若项目有多个 Job（多个 imageName），根据用户关注的模块选择对应的容器名',
       '- 若项目无 .gitlab-ci.yml 或无 imageName，则使用 container 默认值 rag-client',
+      '',
+      '## namespace 自动缓存（ES 后端）',
+      'container → ES index 的映射由 server 端自动缓存，无需 AI 或用户手动维护缓存文件：',
+      '- 缓存位置: 用户主目录下 ~/.config/log-mcp-server/log-mcp.json（Windows: C:/Users/<用户名>/.config/log-mcp-server/log-mcp.json）',
+      '- 缓存结构: 扁平的 { "container_name": "es_index" } 映射，所有项目共用一份',
+      '- 首次调用不传 namespace 时，server 会自动尝试已缓存的映射，缓存未命中则回退 .env 的 KIBANA_INDEX',
+      '- 只要显式传入的 namespace 查询命中(total>0)，server 会自动记住该 container→namespace，之后同一 container 无需再传',
+      '- 若返回中出现 cache_hint 字段（total=0 时才会出现），按提示询问用户正确的 ES index 名称，再显式传 namespace 重试一次即可覆盖旧缓存',
       '',
       '## 后端选择',
       '- elasticsearch: 通过 Kibana 查询 ES，适用于生产环境',
@@ -84,7 +92,7 @@ server.registerTool(
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify({ total: result.total, returned: parsed.length, logs: parsed }, null, 2),
+            text: JSON.stringify({ total: result.total, returned: parsed.length, ...namespaceMeta(result), logs: parsed }, null, 2),
           },
         ],
       };
@@ -118,7 +126,7 @@ server.registerTool(
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify({ trace_id, summary, total: result.total, logs: parsed }, null, 2),
+            text: JSON.stringify({ trace_id, summary, total: result.total, ...namespaceMeta(result), logs: parsed }, null, 2),
           },
         ],
       };
@@ -152,7 +160,7 @@ server.registerTool(
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify({ time_range, total_errors: result.total, error_patterns: aggregated }, null, 2),
+            text: JSON.stringify({ time_range, total: result.total, ...namespaceMeta(result), error_patterns: aggregated }, null, 2),
           },
         ],
       };

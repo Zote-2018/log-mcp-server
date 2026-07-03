@@ -8,6 +8,7 @@
 
 - **多后端支持** — 支持 Elasticsearch（生产）和 kubectl（测试/开发）两种查询后端
 - **动态命名空间过滤** — 查询时指定 namespace 参数，按 k8s 命名空间过滤日志
+- **ES index 自动缓存** — Elasticsearch 后端下，container → ES index 的映射首次查询命中后由 server 自动记住，后续同一 container 无需再传 namespace
 - **关键字搜索** — 按关键字搜索日志，返回结构化解析结果
 - **链路追踪** — 按 sessionId / traceId 查询完整调用链，按时间排序
 - **错误聚合** — 查询 ERROR 日志并按错误模式自动分类聚合

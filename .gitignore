@@ -5,3 +5,7 @@ dist/
 .DS_Store
 Thumbs.db
 .omo/
+
+# agent-sync:begin
+.agents/sessions/
+# agent-sync:end
